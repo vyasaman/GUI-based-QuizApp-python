@@ -27,6 +27,9 @@ opa = StringVar()
 opb = StringVar()
 opc = StringVar()
 opd = StringVar()
+corOpt = StringVar()
+tid = StringVar()
+Ques = StringVar()
 
 
 def addMember():
@@ -59,28 +62,75 @@ def addQuestion():
     top = Toplevel()
     top.geometry('500x400')
     lab1 = Label(top, text='Enter Question').place(
-        height=30, width=200, x=50, y=50)
-    textbox = Text(top).place(height=50, width=200, x=50, y=60)
+        height=27, width=150, x=50, y=40)
+    textbox = Entry(top, textvariable=Ques).place(
+        height=50, width=300, x=50, y=70)
 
     lab2 = Label(top, text='Enter option 1').place(
-        height=30, width=100, x=50, y=70)
-    op1 = Entry(top, textvariable=opa).place(height=30, width=100, x=100, y=70)
+        height=27, width=150, x=50, y=130)
+    op1 = Entry(top, textvariable=opa).place(
+        height=27, width=150, x=200, y=130)
 
     lab3 = Label(top, text='Enter option 2').place(
-        height=30, width=100, x=50, y=80)
-    op2 = Entry(top, textvariable=opb).place(height=30, width=100, x=100, y=80)
+        height=27, width=150, x=50, y=160)
+    op2 = Entry(top, textvariable=opb).place(
+        height=27, width=150, x=200, y=160)
 
     lab4 = Label(top, text='Enter option 3').place(
-        height=30, width=100, x=50, y=90)
-    op3 = Entry(top, textvariable=opc).place(height=30, width=100, x=100, y=90)
+        height=27, width=150, x=50, y=190)
+    op3 = Entry(top, textvariable=opc).place(
+        height=27, width=150, x=200, y=190)
 
     lab5 = Label(top, text='Enter option 4').place(
-        height=30, width=100, x=50, y=100)
+        height=27, width=150, x=50, y=220)
     op4 = Entry(top, textvariable=opd).place(
-        height=30, width=100, x=100, y=100)
+        height=27, width=150, x=200, y=220)
+    lab6 = Label(top, text="Select Correct Option").place(
+        height=27, width=150, x=50, y=250)
+    correct = Combobox(top, textvariable=corOpt)
+    correct['values'] = ('a', 'b', 'c', 'd')
+    correct.place(height=27, width=150, x=200, y=250)
+    lab7 = Label(top, text='Select Technology').place(
+        height=27, width=150, x=50, y=280)
+    techid = Combobox(top, textvariable=tid)
+    li = []
+    cur.execute("select * from technology")
+    res = cur.fetchall()
+    for i in res:
+        li.append(i[1])
 
-    but = Button(top, text='ADD Question').place(
-        height=30, width=100, x=50, y=150)
+    techid['values'] = tuple(li)
+    techid.place(height=27, width=150, x=200, y=280)
+    but = Button(top, text='ADD Question', command=quesADD).place(
+        height=30, width=150, x=50, y=320)
+    clr = Button(top, text='Clear', command=clear).place(
+        height=30, width=150, x=200, y=320)
+
+
+def clear():
+    ques = Ques.set("")
+    opta = opa.set("")
+    optb = opb.set("")
+    optc = opc.set("")
+    optd = opd.set("")
+    cor = corOpt.set("")
+    techId = tid.set("")
+
+
+def quesADD():
+    ques = Ques.get()
+    opta = opa.get()
+    optb = opb.get()
+    optc = opc.get()
+    optd = opd.get()
+    cor = corOpt.get()
+    techId = tid.get()
+    cur.execute("select * from technology where t_name='{}'".format(techId))
+    res = cur.fetchone()
+
+    cur.execute(
+        "insert into question(question,op1,op2,op3,op4,correct,techID) values('{}','{}','{}','{}','{}','{}','{}')".format(ques, opta, optb, optc, optd, cor, res[0]))
+    db.commit()
 
 
 def addTechnology():
@@ -114,11 +164,40 @@ def techAdding():
 
 
 def showResults():
-    pass
+    top = Toplevel()
+    top.geometry('500x400')
+    lab1 = Label(top, text='Result').place(height=30, width=100, x=200, y=30)
+    cur.execute("select * from results")
+    res = cur.fetchall()
+    lab2 = Label(top, text="").place(height=30, width=100, x=10, y=60)
+    lab3 = Label(top, text="UID").place(height=30, width=100, x=0, y=80)
+    lab4 = Label(top, text="TechID").place(
+        height=30, width=100, x=100, y=80)
+    lab5 = Label(top, text="Marks").place(height=30, width=100, x=200, y=80)
+    lab6 = Label(top, text="Status").place(height=30, width=100, x=300, y=80)
+    lab7 = Label(top, text='Time').place(height=30, width=100, x=400, y=80)
+    for i in range(len(res)):
+        for j in range(1, len(res[0])):
+            e = Entry(top)
+            e.insert(END, res[i][j])
+            e.config(state='disabled')
+            e.place(height=30, width=100, x=((j-1)*100), y=((i*30)+100))
 
 
 def get():
     chooseOption = var.get()
+
+
+def dest(t):
+    t.destroy()
+
+
+def subm(t):
+    t.destroy()
+    top = Toplevel()
+    top.geometry('500x400')
+    lab = Label(top, text='Test Completed').pack()
+    but = Button(top, text='Go to Dashboard', command=lambda: dest(top)).pack()
 
 
 def startTest():
@@ -130,26 +209,43 @@ def startTest():
     tid = cur.fetchone()
     cur.execute("select * from question where techID={}".format(tid[0]))
     res = cur.fetchall()
+    for i in res:
+        ques = Label(top, text='Q1. ' + i[1]
+                     ).place(height=50, width=400, x=100, y=70)
 
-    ques = Label(top, text='Q1. ' + res[0][1]
-                 ).place(height=50, width=400, x=100, y=70)
-
-    op1 = Radiobutton(top, text=res[0][2], variable=var, value="a").place(
-        height=30, width=100, x=50, y=200)
-    op2 = Radiobutton(top, text=res[0][3], variable=var, value="b").place(
-        height=30, width=100, x=150, y=200)
-    op3 = Radiobutton(top, text=res[0][4], variable=var, value="c").place(
-        height=30, width=100, x=50, y=250)
-    op4 = Radiobutton(top, text=res[0][5], variable=var, value="d").place(
-        height=30, width=100, x=150, y=250)
-    nxt = Button(top, text='next', command=get()).place(
-        height=30, width=100, x=150, y=300)
-    submit = Button(top, text='Submit', command=get()).place(
-        height=30, width=100, x=150, y=300)
+        op1 = Radiobutton(top, text=i[2], variable=var, value="a").place(
+            height=30, width=100, x=50, y=200)
+        op2 = Radiobutton(top, text=i[3], variable=var, value="b").place(
+            height=30, width=100, x=150, y=200)
+        op3 = Radiobutton(top, text=i[4], variable=var, value="c").place(
+            height=30, width=100, x=50, y=250)
+        op4 = Radiobutton(top, text=i[5], variable=var, value="d").place(
+            height=30, width=100, x=150, y=250)
+        nxt = Button(top, text='next', command=get).place(
+            height=30, width=100, x=100, y=300)
+        submit = Button(top, text='Submit', command=lambda: subm(top)).place(
+            height=30, width=100, x=200, y=300)
 
 
-def result():
-    pass
+def result(res, res1):
+    top = Toplevel()
+    top.geometry('500x400')
+    lab = Label(top, text='Result for ' +
+                res[1]).place(height=30, width=200, x=150, y=50)
+    lab1 = Label(top, text='UID').place(height=30, width=150, x=50, y=100)
+    lab2 = Label(top, text='TechID').place(height=30, width=150, x=50, y=130)
+    lab3 = Label(top, text='Marks Obtained').place(
+        height=30, width=150, x=50, y=160)
+    lab4 = Label(top, text='Result Time').place(
+        height=30, width=150, x=50, y=190)
+    lab5 = Label(top, text='Status').place(height=30, width=150, x=50, y=220)
+    a = 0
+    for i in res1:
+        e = Entry(top)
+        e.insert(i)
+        e.config(state='disabled')
+        e.place(height=30, width=150, x=250, y=((a*30)+100))
+        a += 1
 
 
 def studentValidation():
@@ -167,6 +263,18 @@ def studentValidation():
             msg.set('Invalid ID or Password')
 
 
+def resValid():
+    cur.execute("select * from userdata where uname='{}'".format(stname))
+    res = cur.fetchone()
+    cur.execute("select * from result where uid = {}".format(res[0]))
+    res1 = cur.fetchone()
+    if res1 != None:
+        result(res, res1)
+
+
+stname = ""
+
+
 def studentDashboard(res):
 
     msg.set('')
@@ -174,9 +282,9 @@ def studentDashboard(res):
     top2.geometry('500x400')
     head = Label(top2, text='Welcome '+res[1]).place(
         height=30, width=100, x=200, y=70)
-
+    stname = res[1]
     head2 = Label(top2, text='Test Details').place(
-        height=30, width=100, x=200, y=120)
+        height=30, width=100, x=210, y=120)
     cur.execute("select * from technology")
     res1 = cur.fetchall()
     li = []
@@ -184,11 +292,13 @@ def studentDashboard(res):
         li.append(i[1])
     li = tuple(li)
     st = Label(top2, text='Select Quiz Technology').place(
-        height=30, width=150, x=50, y=200)
+        height=30, width=150, x=50, y=160)
     cb = Combobox(top2, textvariable=tech, values=li).place(
-        height=30, width=100, x=200, y=200)
+        height=30, width=100, x=200, y=160)
     but = Button(top2, text="startTest", command=startTest).place(
         height=30, width=100, x=150, y=250)
+    but1 = Button(top2, text='Result', command=resValid).place(
+        height=30, width=100, x=300, y=250)
 
 
 def student():
