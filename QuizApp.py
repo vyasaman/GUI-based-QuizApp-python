@@ -184,12 +184,23 @@ def showResults():
             e.place(height=30, width=100, x=((j-1)*100), y=((i*30)+100))
 
 
-def get():
+def get(res, top, it, a):
+
+    ques = Label(top, text='Q'+str(a)+'. ' + next(it)[1]
+                 ).place(height=50, width=500, x=00, y=70)
+
+    op1 = Radiobutton(top, text=next(it)[2], variable=var, value="a").place(
+        height=30, width=100, x=50, y=200)
+    op2 = Radiobutton(top, text=next(it)[3], variable=var, value="b").place(
+        height=30, width=100, x=150, y=200)
+    op3 = Radiobutton(top, text=next(it)[4], variable=var, value="c").place(
+        height=30, width=100, x=50, y=250)
+    op4 = Radiobutton(top, text=next(it)[5], variable=var, value="d").place(
+        height=30, width=100, x=150, y=250)
+    a += 1
     chooseOption = var.get()
-
-
-def dest(t):
-    t.destroy()
+    if chooseOption == next(it)[6]:
+        count += 1
 
 
 def subm(t):
@@ -197,11 +208,12 @@ def subm(t):
     top = Toplevel()
     top.geometry('500x400')
     lab = Label(top, text='Test Completed').pack()
-    but = Button(top, text='Go to Dashboard', command=lambda: dest(top)).pack()
+    but = Button(top, text='Go to Dashboard',
+                 command=lambda: top.destroy()).pack()
 
 
 def startTest():
-    global count
+
     top = Toplevel()
     top.geometry('500x400')
     tch = tech.get()
@@ -209,22 +221,12 @@ def startTest():
     tid = cur.fetchone()
     cur.execute("select * from question where techID={}".format(tid[0]))
     res = cur.fetchall()
-    for i in res:
-        ques = Label(top, text='Q1. ' + i[1]
-                     ).place(height=50, width=400, x=100, y=70)
-
-        op1 = Radiobutton(top, text=i[2], variable=var, value="a").place(
-            height=30, width=100, x=50, y=200)
-        op2 = Radiobutton(top, text=i[3], variable=var, value="b").place(
-            height=30, width=100, x=150, y=200)
-        op3 = Radiobutton(top, text=i[4], variable=var, value="c").place(
-            height=30, width=100, x=50, y=250)
-        op4 = Radiobutton(top, text=i[5], variable=var, value="d").place(
-            height=30, width=100, x=150, y=250)
-        nxt = Button(top, text='next', command=get).place(
-            height=30, width=100, x=100, y=300)
-        submit = Button(top, text='Submit', command=lambda: subm(top)).place(
-            height=30, width=100, x=200, y=300)
+    it = iter(list(res))
+    a = 1
+    nxt = Button(top, text='Next', command=lambda: get(res, top, it, a)).place(
+        height=30, width=100, x=100, y=300)
+    submit = Button(top, text='Submit', command=lambda: subm(top)).place(
+        height=30, width=100, x=200, y=300)
 
 
 def result(res, res1):
@@ -239,16 +241,15 @@ def result(res, res1):
     lab4 = Label(top, text='Result Time').place(
         height=30, width=150, x=50, y=190)
     lab5 = Label(top, text='Status').place(height=30, width=150, x=50, y=220)
-    a = 0
-    for i in res1:
+
+    for i in range(1, len(res1)):
         e = Entry(top)
-        e.insert(i)
+        e.insert(END, res1[i])
         e.config(state='disabled')
-        e.place(height=30, width=150, x=250, y=((a*30)+100))
-        a += 1
+        e.place(height=30, width=150, x=250, y=(((i-1)*30)+100))
 
 
-def studentValidation():
+def studentValidation(t):
     uid = stid.get()
     pswd = stpas.get()
     cur.execute("select * from userdata")
@@ -258,28 +259,30 @@ def studentValidation():
         if i[0] == int(uid) and i[2] == pswd and i[3].lower() == 'student':
 
             studentDashboard(i)
+            t.destroy()
             break
         else:
             msg.set('Invalid ID or Password')
 
 
-def resValid():
+def resValid(stname):
     cur.execute("select * from userdata where uname='{}'".format(stname))
     res = cur.fetchone()
-    cur.execute("select * from result where uid = {}".format(res[0]))
+    cur.execute("select * from results where uid = {}".format(res[0]))
     res1 = cur.fetchone()
     if res1 != None:
         result(res, res1)
 
 
-stname = ""
-
-
 def studentDashboard(res):
 
     msg.set('')
+    stid.set("")
+    stpas.set("")
     top2 = Toplevel()
     top2.geometry('500x400')
+    lout = Button(top2, text='Logout', command=lambda: top2.destroy()).place(
+        height=30, width=100, x=400, y=20)
     head = Label(top2, text='Welcome '+res[1]).place(
         height=30, width=100, x=200, y=70)
     stname = res[1]
@@ -297,7 +300,7 @@ def studentDashboard(res):
         height=30, width=100, x=200, y=160)
     but = Button(top2, text="startTest", command=startTest).place(
         height=30, width=100, x=150, y=250)
-    but1 = Button(top2, text='Result', command=resValid).place(
+    but1 = Button(top2, text='Result', command=lambda: resValid(stname)).place(
         height=30, width=100, x=300, y=250)
 
 
@@ -314,13 +317,14 @@ def student():
         height=20, width=100, x=10, y=100)
     epas = Entry(top, textvariable=stpas, show='*').place(
         height=20, width=100, x=105, y=100)
-    sbut = Button(top, text='submit', command=studentValidation).place(
+    sbut = Button(top, text='submit', command=lambda: studentValidation(top)).place(
         height=20, width=50, x=50, y=150)
     errorLabel = Message(top, textvariable=msg, foreground='red').place(
-        height=30, width=100, x=50, y=170)
+        height=50, width=150, x=50, y=170)
 
 
-def adminValidation():
+def adminValidation(t):
+
     uid = adid.get()
     pswd = adpas.get()
     cur.execute("select * from userdata")
@@ -330,6 +334,7 @@ def adminValidation():
         if i[0] == int(uid) and i[2] == pswd and i[3].lower() == 'admin':
 
             adminDashboard(i)
+            t.destroy()
             break
         else:
             msg.set('Invalid ID or Password')
@@ -337,8 +342,12 @@ def adminValidation():
 
 def adminDashboard(res):
     msg.set('')
+    adid.set("")
+    adpas.set("")
     t2 = Toplevel()
     t2.geometry('500x400')
+    lout = Button(t2, text='Logout', command=lambda: t2.destroy()
+                  ).place(height=30, width=100, x=400, y=20)
     head = Label(t2, text='Welcome '+res[1]).place(
         height=30, width=150, x=200, y=70)
 
@@ -365,21 +374,23 @@ def admin():
         height=30, width=100, x=10, y=100)
     apas = Entry(t, textvariable=adpas).place(
         height=30, width=100, x=105, y=100)
-    abut = Button(t, text='submit', command=adminValidation).place(
-        height=20, width=50, x=50, y=150)
+    abut = Button(t, text='submit', command=lambda: adminValidation(t)).place(
+        height=30, width=50, x=50, y=150)
     errorLabel = Message(t, textvariable=msg, foreground='red').place(
-        height=30, width=100, x=50, y=170)
+        height=60, width=150, x=50, y=190)
 
 
-wFrame = Frame(root).pack()
-wel = Label(wFrame, text="Welcome").place(
-    height=30, width=100, x=220, y=50)
-wel2 = Label(wFrame, text='Select Login Type').place(
-    height=30, width=100, x=200, y=100)
-st = Button(wFrame, text='Student', command=student).place(
-    height=30, width=100, x=150, y=150)
-admin = Button(wFrame, text='Admin', command=admin).place(
-    height=30, width=100, x=250, y=150)
+def login():
+    wFrame = Frame(root).pack()
+    wel = Label(wFrame, text="Welcome").place(
+        height=30, width=100, x=220, y=50)
+    wel2 = Label(wFrame, text='Select Login Type').place(
+        height=30, width=100, x=200, y=100)
+    st = Button(wFrame, text='Student', command=student).place(
+        height=30, width=100, x=150, y=150)
+    admn = Button(wFrame, text='Admin', command=admin).place(
+        height=30, width=100, x=250, y=150)
 
 
+login()
 root.mainloop()
