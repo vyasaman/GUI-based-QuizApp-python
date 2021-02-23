@@ -30,6 +30,7 @@ opd = StringVar()
 corOpt = StringVar()
 tid = StringVar()
 Ques = StringVar()
+qlab = StringVar()
 
 
 def addMember():
@@ -184,49 +185,77 @@ def showResults():
             e.place(height=30, width=100, x=((j-1)*100), y=((i*30)+100))
 
 
-def get(res, top, it, a):
-
-    ques = Label(top, text='Q'+str(a)+'. ' + next(it)[1]
-                 ).place(height=50, width=500, x=00, y=70)
-
-    op1 = Radiobutton(top, text=next(it)[2], variable=var, value="a").place(
-        height=30, width=100, x=50, y=200)
-    op2 = Radiobutton(top, text=next(it)[3], variable=var, value="b").place(
-        height=30, width=100, x=150, y=200)
-    op3 = Radiobutton(top, text=next(it)[4], variable=var, value="c").place(
-        height=30, width=100, x=50, y=250)
-    op4 = Radiobutton(top, text=next(it)[5], variable=var, value="d").place(
-        height=30, width=100, x=150, y=250)
-    a += 1
-    chooseOption = var.get()
-    if chooseOption == next(it)[6]:
-        count += 1
-
-
-def subm(t):
+def subm(t, status, uid, tecid):
+    global count
     t.destroy()
+    count = count*10
+    if count > 20:
+        status = "Pass"
+    cur.execute("insert into results(uid,techID,marks,resDate,status) values ({},{},{},Now(),'{}')".format(
+        uid, tecid, count, status))
     top = Toplevel()
     top.geometry('500x400')
     lab = Label(top, text='Test Completed').pack()
+    count = 0
     but = Button(top, text='Go to Dashboard',
                  command=lambda: top.destroy()).pack()
 
 
-def startTest():
+a = 0
 
-    top = Toplevel()
-    top.geometry('500x400')
+
+def questionAndOptions(top, nxt, submit):
+    try:
+        tch = tech.get()
+        cur.execute("select tid from technology where t_name='{}'".format(tch))
+        tid = cur.fetchone()
+        cur.execute("select * from question where techID={}".format(tid[0]))
+        res = cur.fetchall()
+        global a
+        global count
+        if a < len(res):
+            a += 1
+
+        quescount.set(str(a)+'/'+str(len(res)))
+        qlab.set('Q'+str(a)+'. '+res[a-1][1])
+        op1 = Radiobutton(top, text=res[a-1][2], variable=var, value="a").place(
+            height=30, width=100, x=50, y=200)
+        op2 = Radiobutton(top, text=res[a-1][3], variable=var, value="b").place(
+            height=30, width=100, x=150, y=200)
+        op3 = Radiobutton(top, text=res[a-1][4], variable=var, value="c").place(
+            height=30, width=100, x=50, y=250)
+        op4 = Radiobutton(top, text=res[a-1][5], variable=var, value="d").place(
+            height=30, width=100, x=150, y=250)
+        chooseOption = var.get()
+        if chooseOption == res[a-1][6]:
+            count += 1
+        yield res
+    except Exception:
+        print('question khatam')
+
+
+quescount = StringVar()
+
+
+def startTest(uid):
     tch = tech.get()
     cur.execute("select tid from technology where t_name='{}'".format(tch))
     tid = cur.fetchone()
     cur.execute("select * from question where techID={}".format(tid[0]))
     res = cur.fetchall()
-    it = iter(list(res))
-    a = 1
-    nxt = Button(top, text='Next', command=lambda: get(res, top, it, a)).place(
+    global a
+    top = Toplevel()
+    top.geometry('700x400')
+    queslab = Label(top, text='', textvariable=qlab)
+    cnt = Label(top, text='_/_', textvariable=quescount).place(
+        height=30, width=50, x=450, y=20)
+    nxt = Button(top, text='Next', command=lambda: next(questionAndOptions(top, nxt, submit))).place(
         height=30, width=100, x=100, y=300)
-    submit = Button(top, text='Submit', command=lambda: subm(top)).place(
-        height=30, width=100, x=200, y=300)
+    status = ''
+    submit = Button(top, text='Submit', command=lambda: subm(
+        top, uid, tid)).place(height=30, width=100, x=200, y=300)
+
+    queslab.place(height=60, width=700, x=0, y=50)
 
 
 def result(res, res1):
@@ -298,7 +327,7 @@ def studentDashboard(res):
         height=30, width=150, x=50, y=160)
     cb = Combobox(top2, textvariable=tech, values=li).place(
         height=30, width=100, x=200, y=160)
-    but = Button(top2, text="startTest", command=startTest).place(
+    but = Button(top2, text="startTest", command=lambda: startTest(res[1])).place(
         height=30, width=100, x=150, y=250)
     but1 = Button(top2, text='Result', command=lambda: resValid(stname)).place(
         height=30, width=100, x=300, y=250)
