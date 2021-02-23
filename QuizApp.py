@@ -185,14 +185,20 @@ def showResults():
             e.place(height=30, width=100, x=((j-1)*100), y=((i*30)+100))
 
 
-def subm(t, status, uid, tecid):
+def subm(t, status, s_name, tecid, res):
+    cur.execute("select uid from userdata where uname='{}'".format(s_name))
+    uid = cur.fetchone()
     global count
     t.destroy()
     count = count*10
-    if count > 20:
+    totmarks = len(res)*10
+    if count > (totmarks/35):
         status = "Pass"
+    else:
+        status = "Fail"
     cur.execute("insert into results(uid,techID,marks,resDate,status) values ({},{},{},Now(),'{}')".format(
-        uid, tecid, count, status))
+        uid[0], tecid[0], count, status))
+    db.commit()
     top = Toplevel()
     top.geometry('500x400')
     lab = Label(top, text='Test Completed').pack()
@@ -237,7 +243,7 @@ def questionAndOptions(top, nxt, submit):
 quescount = StringVar()
 
 
-def startTest(uid):
+def startTest(s_name):
     tch = tech.get()
     cur.execute("select tid from technology where t_name='{}'".format(tch))
     tid = cur.fetchone()
@@ -253,7 +259,7 @@ def startTest(uid):
         height=30, width=100, x=100, y=300)
     status = ''
     submit = Button(top, text='Submit', command=lambda: subm(
-        top, uid, tid)).place(height=30, width=100, x=200, y=300)
+        top, status, s_name, tid, res)).place(height=30, width=100, x=200, y=300)
 
     queslab.place(height=60, width=700, x=0, y=50)
 
